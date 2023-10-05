@@ -1,4 +1,9 @@
 
+
+from people import STUDENTS, PROFS
+from courses import COURSES
+LEVELS = [1,2,3,4,5]
+
 from bauhaus import Encoding, proposition, constraint
 from bauhaus.utils import count_solutions, likelihood
 
@@ -9,61 +14,99 @@ config.sat_backend = "kissat"
 # Encoding that will store all of your constraints
 E = Encoding()
 
-# To create propositions, create classes for them first, annotated with "@proposition" and the Encoding
-@proposition(E)
-class BasicPropositions:
+class Hashable:
+    def __hash__(self):
+        return hash(str(self))
 
-    def __init__(self, data):
-        self.data = data
-
-    def __repr__(self):
-        return f"A.{self.data}"
-
-
-# Different classes for propositions are useful because this allows for more dynamic constraint creation
-# for propositions within that class. For example, you can enforce that "at least one" of the propositions
-# that are instances of this class must be true by using a @constraint decorator.
-# other options include: at most one, exactly one, at most k, and implies all.
-# For a complete module reference, see https://bauhaus.readthedocs.io/en/latest/bauhaus.html
-@constraint.at_least_one(E)
-@proposition(E)
-class FancyPropositions:
-
-    def __init__(self, data):
-        self.data = data
+    def __eq__(self, __value: object) -> bool:
+        return hash(self) == hash(__value)
 
     def __repr__(self):
-        return f"A.{self.data}"
-
-# Call your variables whatever you want
-a = BasicPropositions("a")
-b = BasicPropositions("b")   
-c = BasicPropositions("c")
-d = BasicPropositions("d")
-e = BasicPropositions("e")
-# At least one of these will be true
-x = FancyPropositions("x")
-y = FancyPropositions("y")
-z = FancyPropositions("z")
+        return str(self)
 
 
-# Build an example full theory for your setting and return it.
-#
-#  There should be at least 10 variables, and a sufficiently large formula to describe it (>50 operators).
-#  This restriction is fairly minimal, and if there is any concern, reach out to the teaching staff to clarify
-#  what the expectations are.
+
+@proposition(E)
+class Assigned(Hashable):
+    def __init__(self, student, course) -> None:
+        self.student = student
+        self.course = course
+
+    def __str__(self) -> str:
+        return f"({self.student} @ {self.course})"
+
+
+@proposition(E)
+class StudentPref(Hashable):
+    def __init__(self, student, course, level) -> None:
+        self.student = student
+        self.course = course
+        self.level = level
+
+    def __str__(self) -> str:
+        return f"(student {self.student} has a preference of {self.level} for course {self.course})"
+
+
+@proposition(E)
+class ProfPref(Hashable):
+    def __init__(self, prof, student, course, level) -> None:
+        self.prof = prof
+        self.student = student
+        self.course = course
+        self.level = level
+
+    def __str__(self) -> str:
+        return f"({self.prof} prefers student {self.student} for course {self.course} at level {self.level})"
+
+assigned_props = []
+for s in STUDENTS:
+    for c in COURSES:
+        assigned_props.append(Assigned(s, c))
+
+student_pref_props = []
+for s in STUDENTS:
+    for c in COURSES:
+        for l in LEVELS:
+            student_pref_props.append(StudentPref(s, c, l))
+
+prof_pref_props = []
+for p in PROFS:
+    for s in STUDENTS:
+        for c in COURSES:
+            for l in LEVELS:
+                prof_pref_props.append(ProfPref(p, s, c, l))
+
 def example_theory():
-    # Add custom constraints by creating formulas with the variables you created. 
-    E.add_constraint((a | b) & ~x)
-    # Implication
-    E.add_constraint(y >> z)
-    # Negate a formula
-    E.add_constraint(~(x & y))
-    # You can also add more customized "fancy" constraints. Use case: you don't want to enforce "exactly one"
-    # for every instance of BasicPropositions, but you want to enforce it for a, b, and c.:
-    constraint.add_exactly_one(E, a, b, c)
+
+    # For every student X and pair of courses Y1 and Y2 (that are unique), we have ~(Assigned_X_Y1 /\ Assigned_X_Y2)
+    for s in STUDENTS:
+        for c1 in COURSES:
+            for c2 in COURSES:
+                if c1 != c2:
+                    E.add_constraint(~(Assigned(s, c1) & Assigned(s, c2)))
+
+    # For every student, they aren't assigned a course that they rank as 1
+    for s in STUDENTS:
+        for c in COURSES:
+            E.add_constraint(StudentPref(s,c,1) >> ~Assigned(s,c))
+
+    # E.add_constraint(w >> x)
 
     return E
+
+
+def display_solution(sol):
+    import pprint
+    pprint.pprint(sol)
+
+def display_assignment(sol):
+    print("\nAssigned TAs:")
+
+    for c in COURSES:
+        print(f"\n{c}:")
+        for s in STUDENTS:
+            if sol[Assigned(s,c)]:
+                print(f" - {s}")
 
 
 if __name__ == "__main__":
@@ -75,11 +118,14 @@ if __name__ == "__main__":
     # of your model:
     print("\nSatisfiable: %s" % T.satisfiable())
     print("# Solutions: %d" % count_solutions(T))
-    print("   Solution: %s" % T.solve())
+    print("   Solution:")
+    sol = T.solve()
+    display_solution(sol)
+    display_assignment(sol)
 
-    print("\nVariable likelihoods:")
-    for v,vn in zip([a,b,c,x,y,z], 'abcxyz'):
-        # Ensure that you only send these functions NNF formulas
-        # Literals are compiled to NNF here
-        print(" %s: %.2f" % (vn, likelihood(T, v)))
+    # print("\nVariable likelihoods:")
+    # for v,vn in zip([w,x,y,z], 'wxyz'):
+    #     # Ensure that you only send these functions NNF formulas
+    #     # Literals are compiled to NNF here
+    #     print(" %s: %.2f" % (vn, likelihood(T, v)))
     print()
