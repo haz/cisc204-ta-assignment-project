@@ -76,7 +76,7 @@ for p in PROFS:
             for l in LEVELS:
                 prof_pref_props.append(ProfPref(p, s, c, l))
 
-def example_theory():
+def build_theory():
 
     # For every student X and pair of courses Y1 and Y2 (that are unique), we have ~(Assigned_X_Y1 /\ Assigned_X_Y2)
     for s in STUDENTS:
@@ -90,7 +90,10 @@ def example_theory():
         for c in COURSES:
             E.add_constraint(StudentPref(s,c,1) >> ~Assigned(s,c))
 
-    # E.add_constraint(w >> x)
+    # TODO: Students must have at least two rank 5 courses
+    # TODO: Course needs K TAs
+    # TODO: Prof must have 2K TAs with a rank of 3 or higher
+    # TODO: No violations of nash equilibrium
 
     return E
 
@@ -111,7 +114,7 @@ def display_assignment(sol):
 
 if __name__ == "__main__":
 
-    T = example_theory()
+    T = build_theory()
     # Don't compile until you're finished adding all your constraints!
     T = T.compile()
     # After compilation (and only after), you can check some of the properties
