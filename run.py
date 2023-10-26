@@ -4,8 +4,10 @@ from people import STUDENTS, PROFS
 from courses import COURSES
 LEVELS = [1,2,3,4,5]
 
-from bauhaus import Encoding, proposition, constraint
+from bauhaus import Encoding, proposition, constraint, Or, And
 from bauhaus.utils import count_solutions, likelihood
+
+import tabulate
 
 # These two lines make sure a faster SAT solver is used.
 from nnf import config
@@ -76,6 +78,32 @@ for p in PROFS:
             for l in LEVELS:
                 prof_pref_props.append(ProfPref(p, s, c, l))
 
+# It shouldn't be the case that there is an assignment swap where the stduents would both prefer it
+def ensure_student_nash():
+    for s1 in STUDENTS:
+        for s2 in STUDENTS:
+            for c1 in COURSES:
+                for c2 in COURSES:
+                    if (s1 != s2) and (c1 != c2):
+
+                        assigned = Assigned(s1, c1) & Assigned(s2, c2)
+
+                        options_s1 = []
+                        options_s2 = []
+                        for l1 in LEVELS:
+                            for l2 in LEVELS:
+                                if l2 > l1:
+                                    options_s1.append(StudentPref(s1,c2,l2) & StudentPref(s1,c1,l1))
+                                    options_s2.append(StudentPref(s2,c1,l2) & StudentPref(s2,c2,l1))
+                        s1prefc2 = Or(options_s1)
+                        s2prefc1 = Or(options_s2)
+
+                        # BUG: Would like to confirm that removing the negation forces a bad nash equilibrium
+                        #          ....but it doesn't seem to be working.
+                        E.add_constraint(assigned >> ~(s1prefc2 & s2prefc1))
+
+
+
 def build_theory():
 
     # For every student X and pair of courses Y1 and Y2 (that are unique), we have ~(Assigned_X_Y1 /\ Assigned_X_Y2)
@@ -90,9 +118,28 @@ def build_theory():
         for c in COURSES:
             E.add_constraint(StudentPref(s,c,1) >> ~Assigned(s,c))
 
-    # TODO: Students must have at least two rank 5 courses
+    # For every student and course, they have exactly one preference level
+    for s in STUDENTS:
+        for c in COURSES:
+            constraint.add_exactly_one(E, [StudentPref(s, c, l) for l in LEVELS])
+    # Same thing for a professor
+    for p in PROFS:
+        for s in STUDENTS:
+            for c in COURSES:
+                constraint.add_exactly_one(E, [ProfPref(p, s, c, l) for l in LEVELS])
+
+    # Students must have at least two rank 5 courses
+    for s in STUDENTS:
+        options = []
+        for c1 in COURSES:
+            for c2 in COURSES:
+                if c1 != c2:
+                    options.append(StudentPref(s, c1, 5) & StudentPref(s, c2, 5))
+        # E.add_constraint(Or(options))
+
     # TODO: Course needs K TAs
     # TODO: Prof must have 2K TAs with a rank of 3 or higher
+
     # TODO: No violations of nash equilibrium
 
     return E
@@ -100,7 +147,9 @@ def build_theory():
 
 def display_solution(sol):
     import pprint
-    pprint.pprint(sol)
+    # pprint.pprint(sol)
+    display_assignment(sol)
+    display_student_prefs(sol)
 
 def display_assignment(sol):
     print("\nAssigned TAs:")
@@ -110,6 +159,25 @@ def display_assignment(sol):
         for s in STUDENTS:
             if sol[Assigned(s,c)]:
                 print(f" - {s}")
+
+def display_student_prefs(sol):
+    print("\nStudent Preferences:")
+
+    course2id = {}
+    for i,c in enumerate(COURSES):
+        course2id[c] = i+1
+    data = [[''] + COURSES]
+    for s in STUDENTS:
+        data.append([s] + ['' for _ in range(len(COURSES))])
+        for c in COURSES:
+            pref = ''
+            for l in LEVELS:
+                if sol[StudentPref(s,c,l)]:
+                    assert pref == ''
+                    pref += f'{l}'
+            data[-1][course2id[c]] = pref
+
+    print(tabulate.tabulate(data))
 
 
 if __name__ == "__main__":
@@ -124,7 +192,6 @@ if __name__ == "__main__":
     print("   Solution:")
     sol = T.solve()
     display_solution(sol)
-    display_assignment(sol)
 
     # print("\nVariable likelihoods:")
     # for v,vn in zip([w,x,y,z], 'wxyz'):
