@@ -98,8 +98,6 @@ def ensure_student_nash():
                         s1prefc2 = Or(options_s1)
                         s2prefc1 = Or(options_s2)
 
-                        # BUG: Would like to confirm that removing the negation forces a bad nash equilibrium
-                        #          ....but it doesn't seem to be working.
                         E.add_constraint(assigned >> ~(s1prefc2 & s2prefc1))
 
 
@@ -164,7 +162,8 @@ def build_theory():
                     options.extend([ProfPref(p, s, c, l) for l in LEVELS if l >= 3])
                 E.add_constraint(Or(options))
 
-    # TODO: No violations of nash equilibrium
+    # No violations of nash equilibrium
+    ensure_student_nash()
 
     return E
 
