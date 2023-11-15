@@ -1,15 +1,20 @@
-STUDENTS = [
-    'joe',
-    'john',
+UNDERGRADS = {
     'mary',
     'alice',
     'bob',
-    'jane',
-    'jill',
+}
+
+GRADS = {
+    'joe',
     'jack',
     'james',
-    'jenny'
-]
+    'jenny',
+    'john',
+    'jane',
+    'jill',
+}
+
+STUDENTS = UNDERGRADS | GRADS
 
 PROFS = [
     'muise',

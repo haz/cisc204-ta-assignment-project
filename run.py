@@ -1,7 +1,8 @@
 
+from itertools import combinations
 
-from people import STUDENTS, PROFS, PROF_ASSIGNMENTS
-from courses import COURSES
+from people import STUDENTS, PROFS, PROF_ASSIGNMENTS, GRADS
+from courses import COURSES, GRAD_COUNT
 LEVELS = [1,2,3,4,5]
 
 from bauhaus import Encoding, proposition, constraint, Or, And
@@ -153,6 +154,13 @@ def build_theory():
                                         if s != s1 and s != s2]))
         E.add_constraint(Or(options))
 
+    # Courses have a required number of grad students
+    for c in COURSES:
+        options = []
+        for choice in combinations(GRADS, GRAD_COUNT[c]):
+            options.append(And([Assigned(s, c) for s in choice]))
+        E.add_constraint(Or(options))
+
     # Prof must have 2 TAs with a rank of 3 or higher
     for p in PROFS:
         for c in COURSES:
@@ -180,7 +188,7 @@ def display_assignment(sol):
     print("\nAssigned TAs:")
 
     for c in COURSES:
-        print(f"\n{c}:")
+        print(f"\n{c} ({GRAD_COUNT[c]} grads):")
         for s in STUDENTS:
             if sol[Assigned(s,c)]:
                 print(f" - {s}")
