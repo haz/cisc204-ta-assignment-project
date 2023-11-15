@@ -1,6 +1,6 @@
 
 
-from people import STUDENTS, PROFS
+from people import STUDENTS, PROFS, PROF_ASSIGNMENTS
 from courses import COURSES
 LEVELS = [1,2,3,4,5]
 
@@ -122,11 +122,18 @@ def build_theory():
     for s in STUDENTS:
         for c in COURSES:
             constraint.add_exactly_one(E, [StudentPref(s, c, l) for l in LEVELS])
-    # Same thing for a professor
+
+    # Make the official professor assignments
     for p in PROFS:
-        for s in STUDENTS:
-            for c in COURSES:
-                constraint.add_exactly_one(E, [ProfPref(p, s, c, l) for l in LEVELS])
+        for c in COURSES:
+            if c in PROF_ASSIGNMENTS[p]:
+                # exactly one preference level for every student
+                for s in STUDENTS:
+                    constraint.add_exactly_one(E, [ProfPref(p, s, c, l) for l in LEVELS])
+            else:
+                # no preference levels for every student
+                for s in STUDENTS:
+                    E.add_constraint(And([~ProfPref(p, s, c, l) for l in LEVELS]))
 
     # Students must have at least two rank 5 courses
     for s in STUDENTS:
@@ -148,7 +155,14 @@ def build_theory():
                                         if s != s1 and s != s2]))
         E.add_constraint(Or(options))
 
-    # TODO: Prof must have 2 TAs with a rank of 3 or higher
+    # Prof must have 2 TAs with a rank of 3 or higher
+    for p in PROFS:
+        for c in COURSES:
+            if c in PROF_ASSIGNMENTS[p]:
+                options = []
+                for s in STUDENTS:
+                    options.extend([ProfPref(p, s, c, l) for l in LEVELS if l >= 3])
+                E.add_constraint(Or(options))
 
     # TODO: No violations of nash equilibrium
 
@@ -159,7 +173,9 @@ def display_solution(sol):
     import pprint
     # pprint.pprint(sol)
     display_assignment(sol)
+    display_prof_prefs(sol)
     display_student_prefs(sol)
+
 
 def display_assignment(sol):
     print("\nAssigned TAs:")
@@ -193,6 +209,20 @@ def display_student_prefs(sol):
     print(tabulate.tabulate(data, headers='firstrow', tablefmt='fancy_grid',
                             colalign=['center']*(len(COURSES)+1)))
 
+def display_prof_prefs(sol):
+    print("\nProf Preferences:")
+    for p in PROFS:
+        print(f"\n{p}:")
+        for c in COURSES:
+            if c in PROF_ASSIGNMENTS[p]:
+                print(f"\n\t{c}:")
+                for s in STUDENTS:
+                    for l in LEVELS:
+                        if sol[ProfPref(p,s,c,l)]:
+                            if sol[Assigned(s,c)]:
+                                print(f"\t\t{s} at level {l} (assigned)")
+                            else:
+                                print(f"\t\t{s} at level {l}")
 
 if __name__ == "__main__":
 

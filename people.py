@@ -14,6 +14,9 @@ STUDENTS = [
 PROFS = [
     'muise',
     'ellis',
-    'dunfield',
-    'dingel'
 ]
+
+PROF_ASSIGNMENTS = {
+    'muise': ['CISC 204', 'CISC 352'],
+    'ellis': ['CISC 102', 'CISC 462'],
+}
