@@ -2,10 +2,15 @@ STUDENTS = [
     'joe',
     'john',
     'mary',
-    'alice'
+    'alice',
+    'bob',
+    'jane',
+    'jill',
 ]
 
 PROFS = [
     'muise',
-    'ellis'
+    'ellis',
+    'dunfield',
+    'dingel'
 ]
