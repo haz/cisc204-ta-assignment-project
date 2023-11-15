@@ -102,6 +102,18 @@ def ensure_student_nash():
                         E.add_constraint(assigned >> ~(s1prefc2 & s2prefc1))
 
 
+def ensure_student_imperfect():
+    for s in STUDENTS:
+        for c1 in COURSES:
+            options = []
+            for c2 in COURSES:
+                if (c1 != c2):
+                    for l1 in LEVELS:
+                        for l2 in LEVELS:
+                            if l2 > l1:
+                                options.append(StudentPref(s,c2,l2) & StudentPref(s,c1,l1))
+            E.add_constraint(Assigned(s,c1) >> Or(options))
+
 
 def build_theory():
 
@@ -173,12 +185,13 @@ def build_theory():
     # No violations of nash equilibrium
     ensure_student_nash()
 
+    # No perfect solution (students never get their top preference)
+    ensure_student_imperfect()
+
     return E
 
 
 def display_solution(sol):
-    import pprint
-    # pprint.pprint(sol)
     display_assignment(sol)
     display_prof_prefs(sol)
     display_student_prefs(sol)
@@ -234,19 +247,12 @@ def display_prof_prefs(sol):
 if __name__ == "__main__":
 
     T = build_theory()
-    # Don't compile until you're finished adding all your constraints!
     T = T.compile()
-    # After compilation (and only after), you can check some of the properties
-    # of your model:
     print("\nSatisfiable: %s" % T.satisfiable())
     # print("# Solutions: %d" % count_solutions(T))
     print("   Solution:")
     sol = T.solve()
-    display_solution(sol)
+    if sol:
+        display_solution(sol)
 
-    # print("\nVariable likelihoods:")
-    # for v,vn in zip([w,x,y,z], 'wxyz'):
-    #     # Ensure that you only send these functions NNF formulas
-    #     # Literals are compiled to NNF here
-    #     print(" %s: %.2f" % (vn, likelihood(T, v)))
     print()
