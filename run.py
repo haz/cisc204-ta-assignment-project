@@ -185,9 +185,13 @@ def display_student_prefs(sol):
                 if sol[StudentPref(s,c,l)]:
                     assert pref == ''
                     pref += f'{l}'
+            # if this student is assigned to the course, colour it green
+            if sol[Assigned(s,c)]:
+                pref = f'\033[92m{pref}\033[0m'
             data[-1][course2id[c]] = pref
 
-    print(tabulate.tabulate(data))
+    print(tabulate.tabulate(data, headers='firstrow', tablefmt='fancy_grid',
+                            colalign=['center']*(len(COURSES)+1)))
 
 
 if __name__ == "__main__":
