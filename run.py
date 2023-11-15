@@ -137,8 +137,18 @@ def build_theory():
                     options.append(StudentPref(s, c1, 5) & StudentPref(s, c2, 5))
         # E.add_constraint(Or(options))
 
-    # TODO: Course needs K TAs
-    # TODO: Prof must have 2K TAs with a rank of 3 or higher
+    # Course needs K=2 TAs
+    for c in COURSES:
+        options = []
+        for s1 in STUDENTS:
+            for s2 in STUDENTS:
+                if s1 != s2:
+                    options.append(And([Assigned(s1, c), Assigned(s2, c)] + \
+                                       [~Assigned(s, c) for s in STUDENTS \
+                                        if s != s1 and s != s2]))
+        E.add_constraint(Or(options))
+
+    # TODO: Prof must have 2 TAs with a rank of 3 or higher
 
     # TODO: No violations of nash equilibrium
 
@@ -188,7 +198,7 @@ if __name__ == "__main__":
     # After compilation (and only after), you can check some of the properties
     # of your model:
     print("\nSatisfiable: %s" % T.satisfiable())
-    print("# Solutions: %d" % count_solutions(T))
+    # print("# Solutions: %d" % count_solutions(T))
     print("   Solution:")
     sol = T.solve()
     display_solution(sol)

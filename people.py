@@ -6,6 +6,9 @@ STUDENTS = [
     'bob',
     'jane',
     'jill',
+    'jack',
+    'james',
+    'jenny'
 ]
 
 PROFS = [
