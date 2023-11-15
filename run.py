@@ -146,14 +146,17 @@ def build_theory():
                 for s in STUDENTS:
                     E.add_constraint(And([~ProfPref(p, s, c, l) for l in LEVELS]))
 
-    # Students must have at least two rank 5 courses
+    # Students must have at least two rank 4 courses and one rank 5 course
     for s in STUDENTS:
-        options = []
+        options4 = []
+        options5 = []
         for c1 in COURSES:
+            options5.append(StudentPref(s, c1, 5))
             for c2 in COURSES:
                 if c1 != c2:
-                    options.append(StudentPref(s, c1, 5) & StudentPref(s, c2, 5))
-        # E.add_constraint(Or(options))
+                    options4.append(StudentPref(s, c1, 4) & StudentPref(s, c2, 4))
+        E.add_constraint(Or(options4))
+        E.add_constraint(Or(options5))
 
     # Course needs K=2 TAs
     for c in COURSES:
